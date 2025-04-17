@@ -1,23 +1,23 @@
 Testing scheme: bbr
 $ /home/ubuntu/pantheon/src/wrappers/bbr.py run_first
-$ /home/ubuntu/pantheon/src/wrappers/bbr.py receiver 33409
+$ /home/ubuntu/pantheon/src/wrappers/bbr.py receiver 34659
 Attempt to set 'bbr' congestion control failed: No such file or directory
 ------------------------------------------------------------
-Server listening on TCP port 33409
+Server listening on TCP port 34659
 TCP window size:  128 KByte (default)
 ------------------------------------------------------------
-$ /home/ubuntu/pantheon/src/wrappers/bbr.py sender 127.0.0.1 33409
+$ /home/ubuntu/pantheon/src/wrappers/bbr.py sender 127.0.0.1 34659
 Attempt to set 'bbr' congestion control failed: No such file or directory
 ------------------------------------------------------------
-Client connecting to 127.0.0.1, TCP port 33409
+Client connecting to 127.0.0.1, TCP port 34659
 TCP window size: 2.50 MByte (default)
 ------------------------------------------------------------
-[  1] local 127.0.0.1 port 49556 connected with 127.0.0.1 port 33409 (icwnd/mss/irtt=319/32741/18)
-[  1] local 127.0.0.1 port 33409 connected with 127.0.0.1 port 49556 (icwnd/mss/irtt=320/32768/15)
+[  1] local 127.0.0.1 port 34659 connected with 127.0.0.1 port 44784 (icwnd/mss/irtt=320/32768/12)
+[  1] local 127.0.0.1 port 44784 connected with 127.0.0.1 port 34659 (icwnd/mss/irtt=319/32741/18)
 [ ID] Interval       Transfer     Bandwidth
-[  1] 0.0000-75.0051 sec   305 GBytes  34.9 Gbits/sec
+[  1] 0.0000-74.9981 sec   326 GBytes  37.3 Gbits/sec
 [ ID] Interval       Transfer     Bandwidth
-[  1] 0.0000-75.0187 sec   305 GBytes  34.9 Gbits/sec
-kill_proc_group: killed process group with pgid 415847
-kill_proc_group: killed process group with pgid 416616
+[  1] 0.0000-75.0068 sec   326 GBytes  37.3 Gbits/sec
+kill_proc_group: killed process group with pgid 533595
+kill_proc_group: killed process group with pgid 534470
 All scheme tests completed successfully.

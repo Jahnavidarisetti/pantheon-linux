@@ -121,6 +121,48 @@ def plot_rtt_vs_throughput(df):
     plt.savefig('graphs/rtt_vs_throughput.png')
     plt.close()
 
+def barplot_avg_and_95th_rtt(df):
+    if 'rtt' not in df.columns:
+        print("[!] 'rtt' column missing in DataFrame.")
+        return
+
+    summary = []
+
+    for profile in df['profile'].unique():
+        for scheme in df['scheme'].unique():
+            subset = df[(df['scheme'] == scheme) & (df['profile'] == profile)]
+            if not subset.empty:
+                avg_rtt = subset['rtt'].mean()
+                p95_rtt = subset['rtt'].quantile(0.95)
+                summary.append({
+                    'Scheme-Profile': f'{scheme}-{profile}',
+                    'Avg RTT': avg_rtt,
+                    '95th RTT': p95_rtt
+                })
+
+    summary_df = pd.DataFrame(summary)
+
+    # Plotting
+    labels = summary_df['Scheme-Profile']
+    x = range(len(labels))
+    width = 0.35
+
+    plt.figure(figsize=(12, 6))
+    plt.bar(x, summary_df['Avg RTT'], width=width, label='Average RTT', color='skyblue')
+    plt.bar([i + width for i in x], summary_df['95th RTT'], width=width, label='95th Percentile RTT', color='salmon')
+
+    plt.xlabel('Scheme-Profile')
+    plt.ylabel('RTT (ms)')
+    plt.title('Average vs 95th Percentile RTT per Scheme/Profile')
+    plt.xticks([i + width / 2 for i in x], labels, rotation=45, ha='right')
+    plt.legend()
+    plt.tight_layout()
+    plt.grid(axis='y')
+    plt.savefig('graphs/barplot_avg_and_95th_rtt.png')
+    plt.close()
+
+
+
 def main():
     os.makedirs('graphs', exist_ok=True)
     os.makedirs('results', exist_ok=True)
@@ -129,14 +171,17 @@ def main():
     data = read_all_logs()
 
     if data.empty:
-        print("❌ No logs found. Exiting.")
+        print("No logs found. Exiting.")
         return
 
     save_throughput_graph(data)
     save_loss_graph(data)
     export_rtt_summary(data)
     plot_rtt_vs_throughput(data)
-    print("✅ All plots and summaries saved.")
+    barplot_avg_and_95th_rtt(data)
+
+
+    print("All plots and summaries saved.")
 
 if __name__ == '__main__':
     main()

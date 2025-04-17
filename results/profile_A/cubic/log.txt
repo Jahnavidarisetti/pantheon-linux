@@ -1,0 +1,23 @@
+Testing scheme: cubic
+$ /home/ubuntu/pantheon/src/wrappers/cubic.py run_first
+$ /home/ubuntu/pantheon/src/wrappers/cubic.py receiver 46711
+------------------------------------------------------------
+Server listening on TCP port 46711
+TCP congestion control set to cubic
+TCP window size:  128 KByte (default)
+------------------------------------------------------------
+$ /home/ubuntu/pantheon/src/wrappers/cubic.py sender 127.0.0.1 46711
+------------------------------------------------------------
+Client connecting to 127.0.0.1, TCP port 46711
+TCP congestion control set to cubic
+TCP window size: 2.50 MByte (default)
+------------------------------------------------------------
+[  1] local 127.0.0.1 port 53808 connected with 127.0.0.1 port 46711 (icwnd/mss/irtt=319/32741/16)
+[  1] local 127.0.0.1 port 46711 connected with 127.0.0.1 port 53808 (icwnd/mss/irtt=320/32768/12)
+[ ID] Interval       Transfer     Bandwidth
+[  1] 0.0000-75.0002 sec   332 GBytes  38.0 Gbits/sec
+[ ID] Interval       Transfer     Bandwidth
+[  1] 0.0000-75.0024 sec   332 GBytes  38.0 Gbits/sec
+kill_proc_group: killed process group with pgid 418041
+kill_proc_group: killed process group with pgid 418965
+All scheme tests completed successfully.

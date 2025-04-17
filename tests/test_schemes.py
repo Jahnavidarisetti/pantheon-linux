@@ -1,91 +1,111 @@
-#!/usr/bin/env python
+# test_schemes.py
+#!/usr/bin/env python3
 
 import os
-from os import path
 import sys
 import time
+import csv
 import signal
+import random
 import argparse
+from datetime import datetime
+from os import path
 
 import context
 from helpers import utils
 from helpers.subprocess_wrappers import Popen, check_output, call
 
 
-def test_schemes(args):
+def generate_random_metrics():
+    """Generates mock metrics for testing."""
+    return (
+        round(random.uniform(20, 100), 2),    # RTT (ms)
+        round(random.uniform(0.5, 5.0), 2),   # Throughput (Mbps)
+        round(random.uniform(0, 0.05), 4),    # Loss rate (%)
+        round(random.uniform(10, 60), 2)      # Latency (ms)
+    )
+
+
+def initialize_csv_logger(scheme, port):
+    """Creates a log file and CSV writer for metrics."""
+    log_dir = 'logs'
+    os.makedirs(log_dir, exist_ok=True)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filepath = path.join(log_dir, f'metrics_{scheme}_{port}_{timestamp}.csv')
+    file = open(filepath, 'w', newline='')
+    writer = csv.writer(file)
+    writer.writerow(['time', 'rtt', 'throughput', 'loss_rate', 'latency'])
+    return file, writer
+
+
+def run_scheme_test(args):
+    available_schemes = utils.parse_config()['schemes'].keys() if args.all else args.schemes.split()
     wrappers_dir = path.join(context.src_dir, 'wrappers')
 
-    if args.all:
-        schemes = utils.parse_config()['schemes'].keys()
-    elif args.schemes is not None:
-        schemes = args.schemes.split()
+    for scheme in available_schemes:
+        print(f"Testing scheme: {scheme}", file=sys.stderr)
+        scheme_script = path.join(wrappers_dir, f'{scheme}.py')
 
-    for scheme in schemes:
-        sys.stderr.write('Testing %s...\n' % scheme)
-        src = path.join(wrappers_dir, scheme + '.py')
-
-        run_first = check_output([src, 'run_first']).strip()
-        run_second = 'receiver' if run_first == 'sender' else 'sender'
-
+        role = check_output([scheme_script, 'run_first']).strip()
+        counterpart = 'receiver' if role == 'sender' else 'sender'
         port = utils.get_open_port()
 
-        # run first to run
-        cmd = [src, run_first, port]
-        first_proc = Popen(cmd, preexec_fn=os.setsid)
-
-        # wait for 'run_first' to be ready
+        p1 = Popen([scheme_script, role, port], preexec_fn=os.setsid)
         time.sleep(3)
+        p2 = Popen([scheme_script, counterpart, '127.0.0.1', port], preexec_fn=os.setsid)
 
-        # run second to run
-        cmd = [src, run_second, '127.0.0.1', port]
-        second_proc = Popen(cmd, preexec_fn=os.setsid)
-
-        # test lasts for 3 seconds
-        signal.signal(signal.SIGALRM, utils.timeout_handler)
-        signal.alarm(3)
+        log_file, csv_writer = initialize_csv_logger(scheme, port)
 
         try:
-            for proc in [first_proc, second_proc]:
+            start = time.time()
+            while time.time() - start < 60:
+                metrics = generate_random_metrics()
+                csv_writer.writerow([datetime.now().strftime('%H:%M:%S')] + list(metrics))
+                time.sleep(1)
+        except Exception as e:
+            sys.exit(f"Error during metrics logging: {e}")
+        finally:
+            log_file.close()
+
+        signal.signal(signal.SIGALRM, utils.timeout_handler)
+        signal.alarm(60)
+
+        try:
+            for proc in (p1, p2):
                 proc.wait()
                 if proc.returncode != 0:
-                    sys.exit('%s failed in tests' % scheme)
+                    sys.exit(f"Test failed for scheme: {scheme}")
         except utils.TimeoutError:
             pass
-        except Exception as exception:
-            sys.exit('test_schemes.py: %s\n' % exception)
+        except Exception as e:
+            sys.exit(f"Unexpected error: {e}")
         else:
             signal.alarm(0)
-            sys.exit('test exited before time limit')
+            sys.exit("Test ended early")
         finally:
-            # cleanup
-            utils.kill_proc_group(first_proc)
-            utils.kill_proc_group(second_proc)
-
-
-def cleanup():
-    cleanup_src = path.join(context.base_dir, 'tools', 'pkill.py')
-    cmd = [cleanup_src, '--kill-dir', context.base_dir]
-    call(cmd)
+            utils.kill_proc_group(p1)
+            utils.kill_proc_group(p2)
 
 
 def main():
     parser = argparse.ArgumentParser()
-
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--all', action='store_true',
-                       help='test all the schemes specified in src/config.yml')
-    group.add_argument('--schemes', metavar='"SCHEME1 SCHEME2..."',
-                       help='test a space-separated list of schemes')
-
+    group.add_argument('--all', action='store_true', help='Run tests for all configured schemes')
+    group.add_argument('--schemes', help='Specify space-separated scheme names')
     args = parser.parse_args()
 
     try:
-        test_schemes(args)
+        run_scheme_test(args)
     except:
         cleanup()
         raise
     else:
-        sys.stderr.write('Passed all tests!\n')
+        print("All scheme tests completed successfully.", file=sys.stderr)
+
+
+def cleanup():
+    cleanup_script = path.join(context.base_dir, 'tools', 'pkill.py')
+    call([cleanup_script, '--kill-dir', context.base_dir])
 
 
 if __name__ == '__main__':
